@@ -23,10 +23,17 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
+
+	// Receive messages from clients
+	UFUNCTION(BlueprintCallable)
+	void ReceiveMessage();
+
+
+private:
 	FSocket* ServerSocket;
 	FIPv4Endpoint ServerEndpoint;
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Socket")
-	void ReceiveMessage();
+	TArray<FSocket*> ClientSockets;
+	FIPv4Address ServerAddress;
+	
 };
+
