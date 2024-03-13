@@ -2,8 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include <iostream>
-#include <WinSock2.h>
+#include "Networking/Public/Networking.h"
 #include "Server.generated.h"
 
 UCLASS()
@@ -24,8 +23,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	WSADATA wsaData;
-	SOCKET ServerSocket;
-	SOCKADDR_IN ServerSockAddr;
-	SOCKADDR_IN ClientSockAddr;
+	FSocket* ServerSocket;
+	FIPv4Endpoint ServerEndpoint;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Socket")
+	void ReceiveMessage();
 };

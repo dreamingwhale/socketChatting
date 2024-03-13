@@ -1,9 +1,9 @@
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include <iostream>
-#include <WinSock2.h>
+#include "Networking/Public/Networking.h"
 #include "Client.generated.h"
 
 UCLASS()
@@ -15,7 +15,6 @@ public:
 	// Sets default values for this actor's properties
 	AClient();
 	~AClient();
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -25,10 +24,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	WSADATA wsaData;
-	SOCKET ServerSocket;
-	SOCKADDR_IN ServerSockAddr;
-	int ServerSockAddrLength;
+	FSocket* ClientSocket;
+	FIPv4Endpoint RemoteEndpoint;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Socket")
