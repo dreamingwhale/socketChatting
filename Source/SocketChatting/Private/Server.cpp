@@ -23,10 +23,10 @@ public:
 		Pending;
 		while (bRun)
 		{
-			if (Pending)
+			while (Pending)
 			{
 
-				if (ServerSocket->HasPendingConnection(Pending))
+				while (ServerSocket->HasPendingConnection(Pending))
 				{
 					UE_LOG(LogTemp, Warning, TEXT("Client Connecting"));
 					FSocket* ClientSocket = ServerSocket->Accept(TEXT("TCPClient"));
@@ -77,7 +77,7 @@ AServer::AServer()
 	// 소켓 바인딩 및 리스닝
 	//ServerSocket->SetReuseAddr(true);
 
-	
+
 }
 AServer::~AServer()
 {
@@ -151,57 +151,48 @@ void AServer::ReceiveMessage()
 	TArray<FSocket*> ClientsToRemove;
 	if (ClientSockets.Num() > 0)
 	{
+		TArray<uint8> ReceivedData;
+		bool bDataReceived = false;
+		int32 TotalBytesRead = 0;
+
+		// 모든 클라이언트 소켓 확인
 		for (FSocket* ClientSocket : ClientSockets)
 		{
-			uint32 Size;
+			uint32 Size = 0;
 			if (ClientSocket->HasPendingData(Size))
 			{
-				TArray<uint8> ReceivedData;
 				ReceivedData.SetNumUninitialized(Size);
 
-				int32 BytesRead = 1024;
+				int32 BytesRead = 0;
 				if (ClientSocket->Recv(ReceivedData.GetData(), ReceivedData.Num(), BytesRead))
 				{
-					// 데이터의 끝에 Null 문자가 있을 수 있으므로 제거
-					int32 StringLength = BytesRead;
-					for (int32 i = 0; i < BytesRead; ++i)
-					{
-						if (ReceivedData[i] == 0)
-						{
-							StringLength = i;
-							break;
-						}
-					}
-
-					// UTF-8 문자열로 가정하고 변환
-					FString ReceivedMessage = FString(UTF8_TO_TCHAR(ReceivedData.GetData()), StringLength);
-					UE_LOG(LogTemp, Warning, TEXT("Server Received: %s"), *ReceivedMessage);
-					if (ClientSocket->Send(ReceivedData.GetData(), BytesRead, BytesRead))
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Server Message Sent: %s"), *ReceivedMessage);
-					}
-					else
-					{
-						int32 ErrorCode = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLastErrorCode();
-						UE_LOG(LogTemp, Error, TEXT("Failed to send message. Error: %d"), ErrorCode);
-					}
+					bDataReceived = true;
+					TotalBytesRead = BytesRead;
 				}
-
 				else if (BytesRead <= 0)
 				{
-					// 연결이 끊겼다고 판단되는 경우, 해당 클라이언트를 배열에서 제거
+					// 연결이 끊겼다면 클라이언트 제거
 					ClientsToRemove.Add(ClientSocket);
 				}
 			}
 		}
 
-	}
+		// 받은 데이터가 있으면 모든 클라이언트에게 전송
+		if (bDataReceived)
+		{
+			for (FSocket* ClientSocket : ClientSockets)
+			{
+				int32 BytesSent = 0;
+				ClientSocket->Send(ReceivedData.GetData(), TotalBytesRead, BytesSent);
+			}
+		}
 
-	// 연결이 끊긴 클라이언트 소켓 제거
-	for (FSocket* SocketToRemove : ClientsToRemove)
-	{
-		ClientSockets.Remove(SocketToRemove);
-		SocketToRemove->Close();
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(SocketToRemove);
+		// 연결이 끊긴 클라이언트 소켓 제거
+		for (FSocket* SocketToRemove : ClientsToRemove)
+		{
+			ClientSockets.Remove(SocketToRemove);
+			SocketToRemove->Close();
+			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(SocketToRemove);
+		}
 	}
 }
