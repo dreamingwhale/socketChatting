@@ -17,13 +17,14 @@ AClient::AClient()
 
     // 비블로킹 모드 설정 (선택적)
     //ClientSocket->SetNonBlocking(true);
-   // ClientSocket->SetRecvErr(true);
+    //ClientSocket->SetRecvErr(true);
 }
 
 AClient::~AClient()
 {
     if (ClientSocket)
     {
+        ClientSocket->Shutdown(ESocketShutdownMode::ReadWrite);
         ClientSocket->Close();
         ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ClientSocket);
     }

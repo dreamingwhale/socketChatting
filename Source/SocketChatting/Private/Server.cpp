@@ -77,6 +77,41 @@ AServer::AServer()
 	// 소켓 바인딩 및 리스닝
 	//ServerSocket->SetReuseAddr(true);
 
+	
+}
+AServer::~AServer()
+{
+
+	if (ListenerThread != nullptr)
+	{
+		ConnectionListener->Stop();
+		ConnectionListener->Exit();
+		ListenerThread->WaitForCompletion();
+		delete ListenerThread;
+		ListenerThread = nullptr;
+	}
+	if (ServerSocket)
+	{
+		ServerSocket->Shutdown(ESocketShutdownMode::ReadWrite);
+		ServerSocket->Close();
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ServerSocket);
+	}
+	if (ClientSockets.Num() > 0)
+	{
+		for (FSocket* ClientSocket : ClientSockets)
+		{
+			ClientSocket->Shutdown(ESocketShutdownMode::ReadWrite);
+			ClientSocket->Close();
+			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ClientSocket);
+		}
+	}
+}
+
+void AServer::BeginPlay()
+{
+	Super::BeginPlay();
+
+
 	if (ServerSocket->Bind(*ServerEndpoint.ToInternetAddr()))
 	{
 
@@ -97,37 +132,6 @@ AServer::AServer()
 	// 비블로킹 모드 설정 (선택적)
 	//ServerSocket->SetNonBlocking(true);
 	//ServerSocket->SetRecvErr(true);
-}
-AServer::~AServer()
-{
-
-	if (ListenerThread != nullptr)
-	{
-		ConnectionListener->Stop();
-		ConnectionListener->Exit();
-		ListenerThread->WaitForCompletion();
-		delete ListenerThread;
-		ListenerThread = nullptr;
-	}
-	if (ServerSocket)
-	{
-		ServerSocket->Close();
-		ServerSocket->Shutdown(ESocketShutdownMode::ReadWrite);
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ServerSocket);
-	}
-	if (ClientSockets.Num() > 0)
-	{
-		for (FSocket* ClientSocket : ClientSockets)
-		{
-			ClientSocket->Close();
-			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ClientSocket);
-		}
-	}
-}
-
-void AServer::BeginPlay()
-{
-	Super::BeginPlay();
 
 	//thread
 	ConnectionListener = new FConnectionListener(ServerSocket, ClientSockets);
